@@ -1,0 +1,119 @@
+import json
+
+def validate(slots):
+    validCities = ["mumbai", "pune", "chennai", "bangalore"]
+    print("slots : ",slots)
+    if not slots['Country']:
+        print("Country location")
+
+        return {
+            "isValid" : False,
+            "violatedSlot" : 'Country'
+        }
+    if not slots['City']:
+        print("Not city location")
+
+        return {
+            "isValid" : False,
+            "violatedSlot" : 'City'
+        }
+    if slots['City']['value']["resolvedValues"][0].lower() not in validCities:
+        print("Not Valide location")
+        
+        return {
+            "isValid" : False,
+            
+            "violatedSlot" : 'City',
+            
+            'message': 'We currently  support only {} as a valid destination.?'.format(", ".join(validCities))
+            
+        }
+    if not slots['CheckInDate']:
+        
+        return {
+        'isValid': False,
+        'violatedSlot': 'CheckInDate',
+    }
+        
+    if not slots['nights']:
+        return {
+        'isValid': False,
+        'violatedSlot': 'nights'
+    }
+        
+    if not slots['Roomtype']:
+        return {
+        'isValid': False,
+        'violatedSlot': 'Roomtype'
+    }
+    
+    return {'isValid': True}
+def lambda_handler(event, context):
+    # TODO implement
+    
+    slots = event['sessionState']['intent']['slots']
+    intent = event['sessionState']['intent']['name']    
+    print(event)
+    print("--------------------------------------------------------------------")
+    print(context)
+    validation_result = validate(event['sessionState']['intent']['slots'])
+    
+    if event['invocationSource'] == 'DialogCodeHook':
+        if not validation_result['isValid']:
+            response = {
+                "sessionState": {
+                    "dialogAction": {
+                        'slotToElicit':validation_result['violatedSlot'],
+                        "type": "ElicitSlot"
+                    },
+                    "intent": {
+                        'name':intent,
+                        'slots': slots
+                        
+                        }
+                }
+               } 
+            
+            return response
+        else:
+            response = {
+            "sessionState": {
+                "dialogAction": {
+                    "type": "Delegate"
+                },
+                "intent": {
+                    'name':intent,
+                    'slots': slots
+                    
+                    }
+        
+                }
+            }
+            return response    
+            
+    if event['invocationSource'] == 'FulfillmentCodeHook':
+        
+        # Add order in Database
+        
+        response = {
+        "sessionState": {
+            "dialogAction": {
+                "type": "Close"
+            },
+            "intent": {
+                'name':intent,
+                'slots': slots,
+                'state':'Fulfilled'
+                
+                }
+    
+        },
+        "messages": [
+            {
+                "contentType": "PlainText",
+                "content": "Thanks, I have placed your reservation"
+            }
+        ]
+    }
+            
+        return response        
